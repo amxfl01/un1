@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
         }
 
         const notion = new Client({ auth: apiKey });
-        const datePropName = '날짜'; // ⚠️ Notion DB의 날짜 속성 이름과 일치하는지 확인해주세요!
+        const datePropName = 'Date'; // ⚠️ Notion DB의 날짜 속성 이름과 일치하는지 확인해주세요!
 
         // ===============================================
         // A. POST 요청: 기록 추가 (기존 기능)
