@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>임베드 링크 생성</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 30px; background-color: #f7f7f7; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        #embed-link-display { background-color: #eee; padding: 15px; border-radius: 4px; overflow-wrap: break-word; font-size: 0.9em; margin-bottom: 20px; border: 1px solid #ddd; }
+        .copy-btn { background-color: #2196F3; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; margin-top: 10px; transition: background-color 0.2s; }
+        .copy-btn:hover { background-color: #1976D2; }
+        .note { margin-top: 20px; padding: 10px; background-color: #f0f8ff; border-left: 5px solid #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Notion 임베드 링크 생성 완료</h2>
+        <p>아래 링크를 복사하여 Notion 페이지의 **`/임베드 (Embed)`** 블록에 붙여넣으세요.</p>
+        
+        <p>생성된 임베드 링크:</p>
+        <div id="embed-link-display">링크를 생성하는 중...</div>
+
+        <button class="copy-btn" onclick="copyLink()">링크 복사하기</button>
+
+        <div class="note">
+            <p><strong>중요:</strong> 이 링크를 사용하려면, 반드시 이 파일을 **외부 호스팅 서버 (GitHub Pages, Vercel 등)**에 업로드해야 합니다. 로컬 파일 시스템에서는 Notion에 임베드 할 수 없습니다.</p>
+            <button onclick="window.location.href = 'index.html'">다시 설정하기</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', generateEmbedLink);
+
+        function generateEmbedLink() {
+            const apiKey = localStorage.getItem('notionApiKey');
+            const dbId = localStorage.getItem('notionDbId');
+            const display = document.getElementById('embed-link-display');
+            
+            if (!apiKey || !dbId) {
+                display.innerHTML = "오류: Notion 키 정보가 없습니다. <a href='index.html'>설정 페이지</a>로 돌아가세요.";
+                return;
+            }
+
+            // 현재 파일 경로를 기반으로 'calendar.html'의 경로를 추정합니다.
+            // **실제 배포 시 이 URL의 "calendar.html" 앞에 도메인 주소를 추가해야 합니다.**
+            const calendarPath = window.location.href.replace('generator.html', 'calendar.html'); 
+
+            // API 키와 DB ID를 URL 매개변수로 인코딩하여 calendar.html로 전달
+            const embedLink = `${calendarPath}?apiKey=${encodeURIComponent(apiKey)}&dbId=${encodeURIComponent(dbId)}`;
+
+            display.textContent = embedLink;
+            window.embeddedLink = embedLink; 
+        }
+
+        function copyLink() {
+            if (window.embeddedLink) {
+                navigator.clipboard.writeText(window.embeddedLink).then(() => {
+                    alert("✅ 임베드 링크가 클립보드에 복사되었습니다! 이제 Notion에 붙여넣으세요.");
+                }).catch(err => {
+                    console.error('복사 실패:', err);
+                    alert("복사에 실패했습니다. 위에 표시된 링크를 수동으로 복사하세요.");
+                });
+            } else {
+                alert("생성된 링크가 없습니다. 설정을 다시 확인해주세요.");
+            }
+        }
+    </script>
+</body>
+</html>

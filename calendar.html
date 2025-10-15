@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Calendar Embed</title>
+    <style>
+        /* --- CSS 스타일: 파란색 테마 및 미니멀 디자인 --- */
+        :root {
+            --main-color: #4a4a4a; /* Notion 기본 텍스트 색상 */
+            --accent-color: #2196F3; /* 파란색 하이라이트 */
+            --light-accent: #E3F2FD; /* 연한 파란색 배경 */
+            --hover-color: #f0f0f0; /* 호버 색상 */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: transparent; 
+            display: flex;
+            justify-content: flex-start;
+            margin: 0;
+            padding: 10px;
+        }
+        .mini-calendar-container {
+            width: 200px; 
+            padding: 5px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); 
+        }
+        .calendar-header-mini {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--main-color);
+            margin-bottom: 5px;
+            padding: 5px 0;
+        }
+        .calendar-header-mini .month-name {
+            text-transform: uppercase;
+            font-weight: 600;
+            margin: 0 5px;
+        }
+        .calendar-weekdays-mini {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 0.65em;
+            font-weight: 500;
+            margin-bottom: 3px;
+            color: #a0a0a0;
+        }
+        .calendar-dates-grid-mini {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            text-align: center;
+        }
+        .day {
+            width: 25px; 
+            height: 25px;
+            line-height: 25px;
+            border-radius: 5px;
+            font-size: 0.75em;
+            font-weight: 400;
+            color: var(--main-color);
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .day:hover:not(.empty) {
+            background-color: var(--hover-color);
+        }
+        .day.empty {
+            background: none;
+            cursor: default;
+        }
+        .day.selected {
+            background-color: var(--light-accent);
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        .day.today {
+            font-weight: 700;
+            border: 1px solid var(--accent-color);
+            background-color: var(--light-accent);
+        }
+        .error-message {
+             color: red; 
+             padding: 20px; 
+             font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mini-calendar-container">
+        <div class="calendar-header-mini">
+            <span class="icon">⋆</span>
+            <span class="month-name" id="month-name-display"></span>
+            <span class="icon">⋆</span>
+        </div>
+        
+        <div class="calendar-weekdays-mini">
+            <div class="weekday">Mo</div><div class="weekday">Tu</div><div class="weekday">We</div>
+            <div class="weekday">Th</div><div class="weekday">Fr</div><div class="weekday sat">Sa</div>
+            <div class="weekday sun">Su</div>
+        </div>
+
+        <div class="calendar-dates-grid-mini" id="calendar-dates-grid">
+            </div>
+    </div>
+
+    <script>
+        // ===============================================
+        // Notion Embed Calendar - Client-Side JavaScript
+        // ===============================================
+
+        // ⚠️ 이 URL은 사용자가 배포한 서버리스 함수 엔드포인트여야 합니다!
+        const NOTION_API_ENDPOINT = 'YOUR_SERVERLESS_FUNCTION_ENDPOINT_URL';
+
+        // URL에서 API 키와 DB ID 추출 (매우 중요)
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                apiKey: params.get('apiKey'),
+                dbId: params.get('dbId')
+            };
+        }
+
+        const { apiKey, dbId } = getUrlParams();
+        
+        // 유효성 검사 및 오류 메시지 출력
+        if (!apiKey || !dbId || NOTION_API_ENDPOINT === 'YOUR_SERVERLESS_FUNCTION_ENDPOINT_URL') {
+            document.body.innerHTML = "<div class='error-message'>설정 오류: API 키/DB ID가 누락되었거나 서버 엔드포인트가 설정되지 않았습니다. 설정 페이지로 돌아가세요.</div>";
+            throw new Error("Missing required Notion API configuration.");
+        }
+        
+        // --- 캘린더 데이터 및 DOM 요소 ---
+        const today = new Date();
+        let currentMonth = today.getMonth();
+        let currentYear = today.getFullYear();
+        let selectedDate = today.getDate(); 
+
+        const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+        const monthNameDisplay = document.getElementById('month-name-display');
+        const datesGrid = document.getElementById('calendar-dates-grid');
+
+        // -----------------------------------------------
+        // 1. Notion API 서버리스 함수로 데이터 전송
+        // -----------------------------------------------
+
+        async function sendToNotion(dateString) {
+            try {
+                const response = await fetch(NOTION_API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: dateString,
+                        apiKey: apiKey, 
+                        dbId: dbId 
+                    })
+                });
+
+                if (response.ok) {
+                    console.log(`✅ Notion DB (${dbId})로 데이터 전송 성공: ${dateString}`);
+                } else {
+                    const errorData = await response.json();
+                    console.error('❌ Notion 서버 응답 오류:', errorData);
+                }
+            } catch (error) {
+                console.error('❌ 데이터 전송 중 네트워크 오류:', error);
+            }
+        }
+
+        // -----------------------------------------------
+        // 2. 캘린더 렌더링
+        // -----------------------------------------------
+
+        function renderCalendar() {
+            datesGrid.innerHTML = '';
+            
+            // 월요일 시작 기준으로 첫째 날의 요일 인덱스 계산 (0=월 ~ 6=일)
+            const firstDayOfMonth = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7; 
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            monthNameDisplay.textContent = months[currentMonth];
+
+            // 1. 전달의 빈 칸 채우기
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.classList.add('day', 'empty');
+                datesGrid.appendChild(emptyDiv);
+            }
+
+            // 2. 현재 월의 날짜 채우기
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.classList.add('day');
+                dayDiv.textContent = i;
+                dayDiv.dataset.date = i; 
+
+                if (currentMonth === today.getMonth() && currentYear === today.getFullYear() && i === today.getDate()) {
+                    dayDiv.classList.add('today');
+                }
+                
+                if (i === selectedDate) {
+                    dayDiv.classList.add('selected');
+                }
+
+                // 날짜 클릭 이벤트 리스너 (선택 및 Notion API 전송)
+                dayDiv.addEventListener('click', (e) => {
+                    const prevSelected = datesGrid.querySelector('.day.selected');
+                    if (prevSelected) {
+                        prevSelected.classList.remove('selected');
+                    }
+                    e.target.classList.add('selected');
+                    selectedDate = parseInt(e.target.dataset.date);
+
+                    const paddedMonth = (currentMonth + 1).toString().padStart(2, '0');
+                    const paddedDate = selectedDate.toString().padStart(2, '0');
+                    const dateToSend = `${currentYear}-${paddedMonth}-${paddedDate}`;
+
+                    sendToNotion(dateToSend); 
+                });
+
+                datesGrid.appendChild(dayDiv);
+            }
+        }
+
+        // 초기 캘린더 렌더링
+        renderCalendar();
+    </script>
+</body>
+</html>
