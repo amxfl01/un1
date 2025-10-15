@@ -1,0 +1,27 @@
+{
+  "name": "notion-calendar-backend",
+  "version": "1.0.0",
+  "description": "Notion API handler for calendar embed",
+  "main": "api/add-entry.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.14" 
+  }
+}
+```
+eof
+
+### 3단계: GitHub 커밋 및 Vercel 재배포
+
+1.  새로 생성한 **`api/add-entry.js`** 와 **`package.json`** 파일을 **GitHub에 커밋하고 푸시**합니다.
+2.  Vercel이 이를 감지하고 **자동으로 재배포**를 시작합니다.
+3.  재배포가 완료된 후, Vercel 대시보드의 **"Resources"** 탭이나 **"Functions"** 탭을 확인하면 이제 **`/api/add-entry`** 라는 함수가 보일 것입니다.
+
+### 4단계: `calendar.html`에 URL 적용
+
+이제 서버리스 함수 URL은 **메인 도메인에 `api/add-entry` 경로가 붙은 것**이 됩니다.
+
+```
+https://un1-nine.vercel.app/api/add-entry
